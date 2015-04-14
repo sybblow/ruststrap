@@ -19,35 +19,37 @@
 set -e
 set -x
 
-: ${DIST_DIR:=/dist}
-: ${SRC_DIR:=/rust}
-: ${TARGET:=arm-unknown-linux-gnueabihf}
+: ${DIST_DIR:=$HOME/build/dist}
+: ${SRC_DIR:=$HOME/build/rust}
+: ${TARGET:=armv7a-unknown-linux-gnueabihf}
 : ${TOOLCHAIN_TARGET:=arm-linux-gnueabihf}
 
 # install C cross compiler
-echo deb http://www.emdebian.org/debian/ unstable main >> /etc/apt/sources.list
-apt-get update -qq
-apt-get install -qq --force-yes g++-4.7-arm-linux-gnueabihf
+#echo deb http://www.emdebian.org/debian/ unstable main >> /etc/apt/sources.list
+#apt-get update -qq
+#apt-get install -qq --force-yes g++-4.7-arm-linux-gnueabihf
 
 # install native C compiler
-apt-get install -qq --force-yes build-essential g++-4.7
+#apt-get install -qq --force-yes build-essential g++-4.7
 
 # set default compilers
-update-alternatives \
-  --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 50 \
-  --slave /usr/bin/g++ g++ /usr/bin/g++-4.7 \
-  --slave /usr/bin/arm-linux-gnueabihf-gcc arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.7 \
-  --slave /usr/bin/arm-linux-gnueabihf-g++ arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.7
+#update-alternatives \
+#  --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 50 \
+#  --slave /usr/bin/g++ g++ /usr/bin/g++-4.7 \
+#  --slave /usr/bin/arm-linux-gnueabihf-gcc arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.7 \
+#  --slave /usr/bin/arm-linux-gnueabihf-g++ arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.7
 gcc -v
 g++ -v
 arm-linux-gnueabihf-gcc -v
 arm-linux-gnueabihf-g++ -v
 
 # install Rust build dependencies
-apt-get install -qq --force-yes curl file git python
+#apt-get install -qq --force-yes curl file git python
 
 # fetch rust
-git clone --recursive https://github.com/rust-lang/rust $SRC_DIR
+if ! [ -d $SRC_DIR ]; then
+    git clone --recursive https://github.com/rust-lang/rust $SRC_DIR
+fi
 cd $SRC_DIR
 git checkout $1
 
@@ -144,13 +146,13 @@ make -j$(nproc)
 cd "$SRC_DIR"/build
 LD_LIBRARY_PATH=$PWD/x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib:$LD_LIBRARY_PATH \
     ./x86_64-unknown-linux-gnu/stage2/bin/rustc --cfg stage2 -O --cfg rtopt                                    \
-    -C linker=${TOOLCHAIN_TARGET}-g++ -C ar=${TOOLCHAIN_TARGET}-ar -C target-feature=+v6,+vfp2                 \
+    -C linker=${TOOLCHAIN_TARGET}-g++ -C ar=${TOOLCHAIN_TARGET}-ar -C target-feature='-mcpu=cortex-a8 -fpu=NEON -mfloat-abi=hard'                 \
     --cfg debug -C prefer-dynamic --target=${TARGET}                                         \
     -o x86_64-unknown-linux-gnu/stage2/lib/rustlib/${TARGET}/bin/rustc --cfg rustc           \
     $PWD/../src/driver/driver.rs
 LD_LIBRARY_PATH=$PWD/x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib:$LD_LIBRARY_PATH \
     ./x86_64-unknown-linux-gnu/stage2/bin/rustc --cfg stage2 -O --cfg rtopt                                    \
-    -C linker=${TOOLCHAIN_TARGET}-g++ -C ar=${TOOLCHAIN_TARGET}-ar -C target-feature=+v6,+vfp2                 \
+    -C linker=${TOOLCHAIN_TARGET}-g++ -C ar=${TOOLCHAIN_TARGET}-ar -C target-feature='-mcpu=cortex-a8 -fpu=NEON -mfloat-abi=hard'                 \
     --cfg debug -C prefer-dynamic --target=${TARGET}                                         \
     -o x86_64-unknown-linux-gnu/stage2/lib/rustlib/${TARGET}/bin/rustdoc --cfg rustdoc       \
     $PWD/../src/driver/driver.rs
