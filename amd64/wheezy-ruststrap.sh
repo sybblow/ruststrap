@@ -59,7 +59,9 @@ HEAD_DATE=$(TZ=UTC date -d @$(git show -s --format=%ct HEAD) +'%Y-%m-%d')
 TARBALL=rust-${HEAD_DATE}-${HEAD_HASH}-${TARGET}
 
 # configure Rust
-mkdir build
+if ! [ -d build ]; then
+    mkdir build
+fi
 cd build
 ../configure \
     --build=x86_64-unknown-linux-gnu \
@@ -137,6 +139,9 @@ ${TARGET}/llvm/Release+Asserts/bin/llvm-config --libs \
 x86_64-unknown-linux-gnu/llvm/Release+Asserts/bin/llvm-config --libs \
     | tr '-' '\n' | sort > x86
 diff arm x86 >/dev/null
+
+cp armv7a-unknown-linux-gnueabihf.mk -t $SRC_DIR/mk/cfg/
+cp armv7a_unknown_linux_gnueabihf.rs -t $SRC_DIR/src/librustc_back/target/
 
 # build it, part 1
 cd "$SRC_DIR"/build
